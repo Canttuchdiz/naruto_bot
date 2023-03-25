@@ -19,6 +19,7 @@ Configure the config.py file
 CHARACTER = (your character)
 OPENAI_KEY = (your apikey)
 MODEL = (your model)
+```
 
 Build and run the bot by running:
 ```bash
