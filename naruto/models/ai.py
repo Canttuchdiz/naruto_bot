@@ -32,13 +32,16 @@ class ThreadManager:
     async def last_messages(self, limit: int, channel: Thread) -> str:
         messages = channel.history(limit=limit)
         mystr = []
-        iterable = [response.content async for response in messages if response.author.bot][:-1]
-        for index, message in enumerate(sorted(iterable, reverse=True)):
+        iterable = [response async for response in messages if response.author.bot]
+        for index, message in enumerate(reversed(iterable)):
             if index == 0:
-                mystr.append(f'The first message is: "{message}"')
+                mystr.append(f'The first message, written by '
+                             f'{"a person" if not message.author.bot else "you"}, says: "{message.content}"')
             else:
-                mystr.append(f'This is the message after that message: "{message}"')
-        return '; '.join(mystr)
+                print("occurred")
+                mystr.append(f'This is the message after that message, written by '
+                             f'{message.author.name if not message.author.bot else "you"}: "{message.content}"')
+        return '; '.join(mystr[1:])
 
     async def conversate(self, message: Message, user: Union[User, Member], channel: Thread) -> str:
         thread = await self.client.fetch_channel(channel.id)
@@ -54,14 +57,14 @@ class ThreadManager:
             memory = await self.last_messages(limit, thread)
             response = openai.Completion.create(
                 engine=Config.MODEL,
-                prompt=f"{memory}."
+                prompt=f"These messages are your memory: {memory}."
                        f"Please respond to the prompt: {message.content} as if you were {Config.CHARACTER}. "
                        f"Respond with less than 185 characters. "
                        f"Be friendly but serious in your responses, and act like {Config.CHARACTER} "
                        f"and naturally like them the character, "
                        f"because you ARE {Config.CHARACTER}.",
                 max_tokens=2048,
-                temperature=0.5
+                temperature=0.75
             )
             text_response = response.choices[0].text
         return text_response
