@@ -34,24 +34,32 @@ class ThreadManager:
         mystr = []
         iterable = [response.content async for response in messages if response.author.bot][:-1]
         for index, message in enumerate(sorted(iterable, reverse=True)):
-            mystr.append(f'"{message}"')
-        return ', '.join(mystr)
+            if index == 0:
+                mystr.append(f'The first message is: "{message}"')
+            else:
+                mystr.append(f'This is the message after that message: "{message}"')
+        return '; '.join(mystr)
 
     async def conversate(self, message: Message, user: Union[User, Member], channel: Thread) -> str:
         thread = await self.client.fetch_channel(channel.id)
         can_respond = await self.can_respond(user, thread)
+        text = await self.prompt_gen(can_respond, message, thread)
+
+        return text
+
+    async def prompt_gen(self, can_respond: bool, message: Message, thread: Thread) -> str:
         text_response = ""
         if can_respond:
             limit = 5 if thread.message_count >= 5 else thread.message_count
             memory = await self.last_messages(limit, thread)
             response = openai.Completion.create(
                 engine=Config.MODEL,
-                prompt=f"This has conversation is related to: {memory}"
+                prompt=f"{memory}."
                        f"Please respond to the prompt: {message.content} as if you were {Config.CHARACTER}. "
+                       f"Respond with less than 185 characters. "
                        f"Be friendly but serious in your responses, and act like {Config.CHARACTER} "
                        f"and naturally like them the character, "
-                       f"because you ARE {Config.CHARACTER}."
-                       f" Make your responses SHORT.",
+                       f"because you ARE {Config.CHARACTER}.",
                 max_tokens=2048,
                 temperature=0.5
             )
